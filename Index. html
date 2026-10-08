@@ -1,0 +1,980 @@
+```html
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#090d16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Curio • 3-Min Deep Dive Facts</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Modern Clean Typography: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            curio: {
+              50: '#eff6ff',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              cyan: '#06b6d4',
+              accent: '#8b5cf6',
+              surface: '#0f172a',
+              card: '#131e33',
+              subtle: '#1e293b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      touch-action: pan-x pan-y;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    
+    .selectable-text {
+      user-select: text;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 0.25; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(1.05); }
+    }
+    .animate-glow {
+      animation: pulse-slow 6s ease-in-out infinite;
+    }
+
+    @keyframes float-subtle {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    .animate-float {
+      animation: float-subtle 4s ease-in-out infinite;
+    }
+
+    .sheet-shadow {
+      box-shadow: 0 -16px 40px -4px rgba(0, 0, 0, 0.8);
+    }
+  </style>
+</head>
+<body class="h-full flex justify-center bg-slate-950 font-sans antialiased text-slate-100 overflow-hidden">
+
+  <div id="app" class="relative w-full max-w-md h-full flex flex-col bg-slate-950 border-x border-slate-900 shadow-2xl overflow-hidden">
+    
+    <!-- Top System Header -->
+    <header class="flex-none px-4 pt-3.5 pb-2.5 flex items-center justify-between border-b border-slate-900 bg-slate-950/95 backdrop-blur-md z-30">
+      <div class="flex items-center space-x-2.5 cursor-pointer" onclick="goToHome()">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
+          <i class="fa-solid fa-atom text-white text-sm"></i>
+        </div>
+        <div>
+          <span class="text-xs font-bold uppercase tracking-widest text-blue-400">Curio</span>
+          <h1 class="text-[11px] font-medium text-slate-400 leading-none">3-Min Deep Dives</h1>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-1.5">
+        <!-- Home Icon Button (Shown when in Fact View) -->
+        <button id="homeNavBtn" onclick="goToHome()" title="Back to Home" class="hidden w-9 h-9 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-white active:scale-95 transition">
+          <i class="fa-solid fa-house text-xs"></i>
+        </button>
+
+        <!-- Read Aloud Button (Active when in Fact View) -->
+        <button id="ttsBtn" onclick="toggleSpeech()" title="Listen to fact" class="hidden w-9 h-9 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-white active:scale-95 transition">
+          <i id="ttsIcon" class="fa-solid fa-volume-high text-sm"></i>
+        </button>
+
+        <!-- Bookmark Current Fact (Active when in Fact View) -->
+        <button id="bookmarkBtn" onclick="toggleBookmark()" title="Bookmark fact" class="hidden w-9 h-9 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-yellow-400 active:scale-95 transition">
+          <i id="bookmarkIcon" class="fa-regular fa-bookmark text-sm"></i>
+        </button>
+
+        <!-- Saved Tray Toggle -->
+        <button onclick="openSavedTray()" title="Saved Facts" class="w-9 h-9 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-white active:scale-95 transition relative">
+          <i class="fa-solid fa-layer-group text-sm"></i>
+          <span id="savedCounter" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-blue-600 text-[9px] font-bold rounded-full flex items-center justify-center text-white ring-2 ring-slate-950">0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- SCREEN 1: Home / Discovery Launchpad -->
+    <section id="homeScreen" class="flex-1 flex flex-col justify-between p-5 overflow-y-auto">
+      
+      <!-- Top Hero Section -->
+      <div class="my-auto space-y-6 text-center">
+        <!-- Floating Ambient Icon -->
+        <div class="relative mx-auto w-24 h-24 flex items-center justify-center">
+          <div class="absolute inset-0 bg-blue-500/20 rounded-full blur-2xl animate-glow"></div>
+          <div class="relative w-20 h-20 rounded-3xl bg-gradient-to-tr from-slate-900 via-curio-card to-slate-800 border border-slate-700/60 shadow-2xl flex items-center justify-center animate-float">
+            <i class="fa-solid fa-wand-magic-sparkles text-3xl bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent"></i>
+          </div>
+        </div>
+
+        <!-- Main Pitch -->
+        <div class="space-y-2.5">
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
+            Curiosity, <span class="bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent">on demand.</span>
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-400 max-w-xs mx-auto leading-relaxed">
+            Unpack one deeply fascinating, mind-expanding phenomenon at a time. Each story is crafted for a satisfying <strong>3–4 minute read</strong> with follow-up Q&A.
+          </p>
+        </div>
+
+        <!-- Category Selector Pills -->
+        <div class="pt-2 text-left">
+          <div class="flex items-center justify-between mb-2 px-1">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Choose Theme</span>
+            <span id="selectedCategoryLabel" class="text-[11px] text-blue-400 font-medium">Surprise Me (Any)</span>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5 justify-center" id="categoryChips">
+            <button onclick="setCategoryFilter('all', this)" class="cat-pill active px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-600 text-white border border-blue-500 shadow-sm transition">
+              ✨ Surprise Me
+            </button>
+            <button onclick="setCategoryFilter('Biology & Physiology', this)" class="cat-pill px-3 py-1.5 rounded-full text-xs font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">
+              🧬 Biology
+            </button>
+            <button onclick="setCategoryFilter('Horology & Mechanics', this)" class="cat-pill px-3 py-1.5 rounded-full text-xs font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">
+              ⚙️ Mechanics
+            </button>
+            <button onclick="setCategoryFilter('Computing & Aerospace', this)" class="cat-pill px-3 py-1.5 rounded-full text-xs font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">
+              🚀 Space & Tech
+            </button>
+            <button onclick="setCategoryFilter('Geology & Deep Earth', this)" class="cat-pill px-3 py-1.5 rounded-full text-xs font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">
+              🌋 Geology
+            </button>
+            <button onclick="setCategoryFilter('History of Medicine', this)" class="cat-pill px-3 py-1.5 rounded-full text-xs font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">
+              💉 Medicine
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prominent Primary Call-to-Action Button -->
+      <div class="pt-4 pb-2 space-y-3">
+        <button 
+          id="sparkFactBtn"
+          onclick="generateFactOnDemand()" 
+          class="w-full h-14 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:via-indigo-500 hover:to-cyan-500 active:scale-[0.98] transition flex items-center justify-center gap-3 text-white font-bold text-base shadow-xl shadow-blue-600/30 border border-blue-400/20 group">
+          <i class="fa-solid fa-bolt text-amber-300 group-hover:rotate-12 transition-transform"></i>
+          <span>Spark an Interesting Fact</span>
+        </button>
+
+        <div class="flex items-center justify-center gap-4 text-[11px] text-slate-500">
+          <span class="flex items-center gap-1"><i class="fa-regular fa-clock text-blue-400"></i> 3–4 Min Deep Dive</span>
+          <span>•</span>
+          <span class="flex items-center gap-1"><i class="fa-solid fa-volume-high text-emerald-400"></i> Audio TTS Ready</span>
+          <span>•</span>
+          <span class="flex items-center gap-1"><i class="fa-solid fa-brain text-purple-400"></i> Curio Q&A</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- SCREEN 2: Fact Reader & Discussion View -->
+    <main id="factContainer" class="hidden flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-28 selectable-text">
+      
+      <!-- Back pill bar -->
+      <div class="flex items-center justify-between text-xs">
+        <button onclick="goToHome()" class="flex items-center gap-1.5 text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 transition active:scale-95">
+          <i class="fa-solid fa-arrow-left text-[11px]"></i>
+          <span>New Topic</span>
+        </button>
+        <span id="factSequenceCounter" class="text-[11px] font-mono text-slate-500">Curio #1 of 7</span>
+      </div>
+
+      <!-- Fact Meta Header Card -->
+      <section class="relative rounded-2xl bg-gradient-to-b from-curio-card to-slate-900/90 border border-slate-800 p-5 shadow-lg overflow-hidden">
+        <!-- Dynamic Glow Backdrop -->
+        <div id="categoryGlow" class="absolute -right-8 -top-8 w-36 h-36 bg-blue-500/20 rounded-full blur-2xl pointer-events-none animate-glow"></div>
+
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <span id="factCategory" class="px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase">
+            Topic
+          </span>
+          <span class="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
+            <i class="fa-regular fa-clock text-blue-400"></i>
+            <span id="factReadTime">3 min 30 sec read</span>
+          </span>
+        </div>
+
+        <h2 id="factTitle" class="text-xl sm:text-2xl font-bold tracking-tight text-white leading-snug">
+          Fact Headline
+        </h2>
+
+        <p id="factHook" class="mt-3 text-sm text-slate-300 font-medium leading-relaxed italic border-l-2 border-blue-500 pl-3">
+          "Fact teaser hook..."
+        </p>
+      </section>
+
+      <!-- Deep Dive Structured Breakdown Cards -->
+      <section class="space-y-3.5">
+        
+        <!-- 1. The Anatomy & Scale -->
+        <article class="p-4 rounded-xl bg-slate-900/80 border border-slate-800/90">
+          <div class="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2">
+            <i class="fa-solid fa-ruler-combined"></i>
+            <span id="sec1Title">1. Scale & Anatomy</span>
+          </div>
+          <p id="factScale" class="text-sm text-slate-300 leading-relaxed">
+            Detailed breakdown...
+          </p>
+        </article>
+
+        <!-- 2. The Mechanics / Physics -->
+        <article class="p-4 rounded-xl bg-slate-900/80 border border-slate-800/90">
+          <div class="flex items-center gap-2 text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">
+            <i class="fa-solid fa-gears"></i>
+            <span id="sec2Title">2. The Core Mechanism</span>
+          </div>
+          <p id="factMechanism" class="text-sm text-slate-300 leading-relaxed">
+            Mechanical explanation...
+          </p>
+        </article>
+
+        <!-- 3. Why It Matters -->
+        <article class="p-4 rounded-xl bg-slate-900/80 border border-slate-800/90">
+          <div class="flex items-center gap-2 text-xs font-bold text-purple-400 uppercase tracking-wider mb-2">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span id="sec3Title">3. Breakthrough & Significance</span>
+          </div>
+          <p id="factImpact" class="text-sm text-slate-300 leading-relaxed">
+            Historical or scientific breakthrough...
+          </p>
+        </article>
+
+        <!-- 4. Mind-Bending Takeaway -->
+        <article class="p-4 rounded-xl bg-gradient-to-br from-blue-950/40 via-slate-900 to-indigo-950/40 border border-blue-900/50">
+          <div class="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">
+            <i class="fa-solid fa-fire-flame-curved"></i>
+            <span>4. Mind-Bending Takeaway</span>
+          </div>
+          <p id="factTakeaway" class="text-sm text-slate-200 font-medium leading-relaxed">
+            Fascinating closing insight...
+          </p>
+        </article>
+      </section>
+
+      <!-- Interactive Curio Discussion & Rabbit Hole Section -->
+      <section class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-comments text-blue-400"></i>
+            <span>Discuss & Dig Deeper</span>
+          </h3>
+          <span class="text-[11px] text-slate-500 font-mono">Curio Assistant</span>
+        </div>
+
+        <p class="text-xs text-slate-400">
+          Tap a suggested deep-dive inquiry or ask your own question:
+        </p>
+
+        <!-- Quick Question Chips -->
+        <div id="promptChips" class="flex flex-wrap gap-1.5 pt-1">
+          <!-- Filled dynamically per fact -->
+        </div>
+
+        <!-- Chat History Stream -->
+        <div id="chatBox" class="mt-2 space-y-2.5 max-h-56 overflow-y-auto rounded-xl bg-slate-950/80 p-3 border border-slate-800/60 text-xs">
+          <!-- Populated per fact -->
+        </div>
+
+        <!-- Question Input -->
+        <form id="chatForm" onsubmit="handleChatSubmit(event)" class="flex gap-1.5 pt-1">
+          <input 
+            type="text" 
+            id="chatInput" 
+            placeholder="Ask a question about this phenomenon..." 
+            class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
+          >
+          <button 
+            type="submit" 
+            class="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-xl text-xs font-semibold flex items-center gap-1 shadow-md shadow-blue-600/30 transition">
+            <i class="fa-solid fa-paper-plane text-[10px]"></i>
+          </button>
+        </form>
+      </section>
+
+      <div class="h-6"></div>
+    </main>
+
+    <!-- Bottom Floating Action Bar (Active in Reader View) -->
+    <footer id="readerFooter" class="hidden absolute bottom-0 left-0 right-0 p-3 pb-safe-bottom bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent backdrop-blur-sm z-30">
+      <div class="flex items-center justify-between gap-2 max-w-sm mx-auto">
+        <!-- Next / Shuffle Button -->
+        <button 
+          onclick="nextFact()" 
+          class="flex-1 h-12 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] transition flex items-center justify-center gap-2 text-white font-semibold text-sm shadow-xl shadow-blue-700/25 border border-blue-400/20">
+          <i class="fa-solid fa-shuffle text-xs"></i>
+          <span>Next Deep Dive</span>
+        </button>
+
+        <!-- Share Button -->
+        <button 
+          onclick="shareFact()" 
+          class="h-12 w-12 rounded-2xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white active:scale-95 transition flex items-center justify-center shadow-lg"
+          title="Share Fact">
+          <i class="fa-solid fa-share-nodes text-sm"></i>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Saved Facts Modal / Bottom Sheet -->
+    <div id="savedTray" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex flex-col justify-end transition-opacity">
+      <div class="bg-slate-900 border-t border-slate-800 rounded-t-3xl max-w-md w-full mx-auto max-h-[85vh] flex flex-col sheet-shadow animate-in slide-in-from-bottom duration-300">
+        
+        <!-- Tray Header -->
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-bookmark text-blue-400"></i>
+            <h3 class="font-bold text-base text-white">Saved Curiosities</h3>
+          </div>
+          <button onclick="closeSavedTray()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center hover:text-white">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+
+        <!-- Tray List Content -->
+        <div id="savedList" class="flex-1 overflow-y-auto p-4 space-y-2.5">
+          <!-- Populated dynamically -->
+        </div>
+
+        <div class="p-3 border-t border-slate-800/80 text-center">
+          <span class="text-[11px] text-slate-500">Curio saves your bookmarks locally in your browser storage.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 border border-slate-700 text-slate-100 text-xs px-4 py-2 rounded-full shadow-2xl opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2">
+      <i id="toastIcon" class="fa-solid fa-check text-emerald-400"></i>
+      <span id="toastMsg">Notification</span>
+    </div>
+
+  </div>
+
+  <script>
+    /**
+     * Comprehensive Curated 3-4 Minute Fact Database
+     * Spanning Horology, Biology, Space, Deep Geology, Computing, and Medicine.
+     */
+    const FACTS_DATABASE = [
+      {
+        id: "spring-drive-escapement",
+        title: "The Horological Miracle: The Spring Drive & The Tri-Synchro Regulator",
+        category: "Horology & Mechanics",
+        categoryColor: "amber",
+        readTime: "3 min 45 sec read",
+        hook: "While mechanical watches tick and quartz watches jerk second-by-second, the Spring Drive is the only mechanical movement on Earth where time moves in absolute, silent, unbroken glide.",
+        sec1Title: "1. The 250-Year Horological Dilemma",
+        sec2Title: "2. The Tri-Synchro Glide Regulator",
+        sec3Title: "3. Pure Mechanical Independence",
+        scale: "Since Thomas Mudge developed the Swiss lever escapement in 1755, every mechanical watch has chopped time into vibrating fractions—typically 28,800 or 36,000 vibrations per hour (vph). The ticking sound is literally a pallet fork violently colliding with an escape wheel gear tooth. In 1977, engineer Yoshikazu Akahane at Suwa Seikosha dedicated 28 years and 600 discarded prototypes to eliminate this impact friction forever.",
+        mechanism: "Spring Drive generates no battery power. A traditional wound mainspring transfers torque through a mechanical gear train. Instead of a collision-based pallet fork and hairspring balance wheel, the final gear spins an electromagnetic 'Glide Wheel' unidirectionally at exactly eight revolutions per second. As it spins between electromagnets, it generates a tiny nano-current of electricity that boots an ultra-low-power Integrated Circuit (IC) and quartz crystal vibrating at 32,768 Hz. The IC applies a magnetic brake precisely 8 times per second to brake the wheel without a single physical touching surface.",
+        impact: "It created an entirely new category in chronometry: mechanical spring drive with quartz-governed magnetic braking. It achieves ±1 second per day accuracy—unprecedented for an autonomously mainspring-powered watch—while eliminating the primary mechanical wear points that degrade ordinary luxury timepieces.",
+        takeaway: "If you place your ear directly against a Spring Drive watch case, you hear no tick-tick-tick. There is only supernatural, eerie silence while the second hand sweeps with the continuous, undisturbed flow of the cosmos.",
+        prompts: [
+          "Does Spring Drive need a battery replacement?",
+          "How does it compare to 36,000 vph Hi-Beat movements?",
+          "How does the electromagnetic brake work?"
+        ],
+        knowledgeBase: {
+          "battery": "No! It never needs a battery. The entire electrical circuit (the IC and quartz oscillator) is powered entirely by the kinetic torque of the unwinding mechanical mainspring via micro-electromagnetic induction.",
+          "hi-beat": "A 36,000 vph Hi-Beat mechanical watch oscillates at 10 beats per second using a traditional balance wheel and hairspring, giving a very smooth sweep and resistance to shocks, but with high friction wear. Spring Drive uses no balance wheel at all—it rotates unidirectionally without friction.",
+          "brake": "The glide wheel spins inside a magnetic stator coil. When the quartz IC detects the wheel is spinning even milliseconds too fast, it applies electromagnetic resistance (Lorentz force braking), holding the rotation at precisely 8.00 revolutions per second."
+        }
+      },
+      {
+        id: "apollo-agc-core-rope",
+        title: "The LOL Memory of Apollo 11: Software Hand-Woven by Textile Weavers",
+        category: "Computing & Aerospace",
+        categoryColor: "cyan",
+        readTime: "3 min 30 sec read",
+        hook: "When Neil Armstrong and Buzz Aldrin touched down on the Moon, the software code that landed them was literally woven by hand with copper wire and tiny metal donut rings by factory textile workers.",
+        sec1Title: "1. The 70-Pound Lunar Brain",
+        sec2Title: "2. The Physics of Core Rope Memory",
+        sec3Title: "3. Little Old Lady (LOL) Precision",
+        scale: "In 1966, silicon microchips and hard disks could not withstand the cosmic radiation, vibration, and temperature swings of deep space. MIT Instrumentation Lab created the Apollo Guidance Computer (AGC). To store the complex guidance algorithms, they used 'core rope memory'—providing 36,864 words (72 kilobytes) of Read-Only Memory (ROM) in a chassis weighing under 70 pounds.",
+        mechanism: "Core rope memory is pure physical binary code. Ferrite magnetic rings (toroids) served as transformers. To encode a binary '1', a copper wire was physically threaded through the interior of the magnetic donut ring. To encode a binary '0', the wire bypassed the outside of the ring. When an electrical pulse was sent through the wire, only the ring with the threaded core registered a magnetic induction signal.",
+        impact: "Because machine manufacturing didn't exist for micro-scale ring-threading, NASA contracted textile seamstresses at the Raytheon factory in Waltham, Massachusetts. The engineers affectionately nicknamed this architecture 'LOL memory' (Little Old Lady memory). Each seamstress passed needles through specific cores according to printouts designed by Margaret Hamilton’s software engineering team.",
+        takeaway: "This woven software was virtually indestructible. You could drop the AGC down a flight of stairs, soak it in seawater, or expose it to intense solar flare radiation, and not a single bit of the flight software would flip or corrupt.",
+        prompts: [
+          "Could cosmic rays flip a bit in rope memory?",
+          "How did Margaret Hamilton test the AGC code?",
+          "What happened during the Apollo 11 1202 program alarm?"
+        ],
+        knowledgeBase: {
+          "cosmic": "Unlike modern RAM or solid-state memory, cosmic radiation and high-energy protons could not alter core rope memory because a bit was physically dictated by copper wire running through iron rings.",
+          "hamilton": "Margaret Hamilton pioneered asynchronous priority scheduling. When the radar overloaded the computer during Apollo 11 landing (1202 alarm), the operating system dropped low-priority tasks and preserved thruster and landing calculations.",
+          "1202": "The 1202 alarm occurred because the rendezvous radar was left in the wrong switch mode, flooding the CPU with interrupts. The AGC successfully shed non-critical calculations without rebooting, saving the landing."
+        }
+      },
+      {
+        id: "kola-superdeep-borehole",
+        title: "The Kola Superdeep Borehole: The 7.6-Mile Descent into Earth's Boiling Crust",
+        category: "Geology & Deep Earth",
+        categoryColor: "rose",
+        readTime: "3 min 40 sec read",
+        hook: "Soviet scientists drilled 40,230 feet into the Earth's crust—deeper than Mount Everest is tall—only to discover that geology textbooks were entirely wrong about our planet's interior.",
+        sec1Title: "1. The Deepest Hole on Earth",
+        sec2Title: "2. Fractured Granite and Boiling Mud",
+        sec3Title: "3. Defying Geophysical Predictions",
+        scale: "Between 1970 and 1992, on the Kola Peninsula in Arctic Russia, the SG-3 borehole was drilled to 12,262 meters (40,230 feet). At this depth, atmospheric pressure is negligible compared to the 3,000 atmospheres of lithostatic weight squeezing every square inch of rock.",
+        mechanism: "Geophysicists had predicted from surface seismic waves that at 7 kilometers, low-density granite would give way to high-density basalt (the Conrad Discontinuity). Instead, Kola revealed that the acoustic change wasn't a switch to basalt at all—it was granite that had shattered under extreme pressure and was completely saturated with boiling hydrothermal water trapped beneath impermeable rock layers.",
+        impact: "Drilling had to be permanently abandoned when temperatures at the bottom reached 356°F (180°C)—nearly double what thermodynamic models predicted. At that temperature and pressure, the ancient rock stopped behaving like brittle stone and began flowing like sticky plastic or hot pitch, sealing drill holes shut as quickly as bits cut them.",
+        takeaway: "Core samples from 4 miles deep contained fossilized microscopic plankton preserved in crystalline minerals over 2 billion years old, demonstrating that liquid water and ancient organic signatures survived deep within the crust.",
+        prompts: [
+          "Why did they stop drilling at 40,230 feet?",
+          "Did they really record 'screaming souls' at Kola?",
+          "What is the Conrad Discontinuity?"
+        ],
+        knowledgeBase: {
+          "stop": "They stopped because extreme 180°C heat and hydrostatic pressure softened the rock into a viscous plastic state. Drill bits deformed rapidly, and the hole would squeeze shut within hours.",
+          "screaming": "The 'Well to Hell' screaming audio was a popular internet hoax created in the late 1980s by a tabloid. The real sounds were ultrasonic drill chatter and seismic micro-fractures, not microphones in hell!",
+          "conrad": "The Conrad Discontinuity is a seismic boundary in the continental crust where earthquake wave speeds jump. Kola proved this was caused by metamorphic water porosity rather than a transition from granite to basalt."
+        }
+      },
+      {
+        id: "voyager-pulsar-map",
+        title: "The Voyager Pulsar Map: A Galactic Cosmic Clock That Ticks Down Its Own Obsolescence",
+        category: "Computing & Aerospace",
+        categoryColor: "indigo",
+        readTime: "3 min 20 sec read",
+        hook: "Etched into gold-plated copper discs on Voyagers 1 and 2 is a map detailing our sun's exact coordinates in the Milky Way—using fourteen celestial clocks that will become unreadable in a few million years.",
+        sec1Title: "1. The Message to the Stars",
+        sec2Title: "2. The Pulsar Triangulation Grid",
+        sec3Title: "3. The Inevitable Decay of Cosmic Clocks",
+        scale: "Launched in 1977 and now over 15 billion miles away in interstellar space, the Voyager Golden Records carry an etched diagram designed by Frank Drake, Carl Sagan, and Linda Salzman Sagan. To convey location without human languages or metric units, they turned to neutral hydrogen emissions and spinning neutron stars.",
+        mechanism: "The map features 14 lines radiating outward from a central point (our Sun). The length and direction of each line point to a specific pulsar. Along each line is a binary code written in dashes and lines representing the spin period of that pulsar, using the fundamental 21-centimeter hydrogen hyperfine transition as the basic unit of time (0.704 nanoseconds).",
+        impact: "Because pulsars are rapidly rotating neutron stars with lighthouse-like beams of radio emission, an alien astronomer measuring these 14 periods could triangulate Earth's position in 3D space with sub-light-year precision.",
+        takeaway: "Pulsars gradually lose rotational energy and slow down over millions of years. This means the Voyager map is not only an interstellar roadmap, but also an immutable cosmological clock that tells future civilizations exactly when the golden probe was launched.",
+        prompts: [
+          "How does an alien decode the 21cm hydrogen atom?",
+          "Are astronomers worried the map reveals our location to hostile aliens?",
+          "How long will the Golden Record physically survive?"
+        ],
+        knowledgeBase: {
+          "hydrogen": "The top left of the cover depicts the neutral hydrogen atom in two states: when the proton and electron spin parallel vs anti-parallel. This flip releases radiation at a constant 1420 MHz, establishing universal units of length (21 cm) and time (0.7 ns).",
+          "hostile": "While some scientists like Stephen Hawking warned against broadcasting our coordinates, the immense emptiness of space means Voyager will not come within even 1.6 light-years of another star for at least 40,000 years.",
+          "survive": "Because it travels in the vacuum of deep space protected by an electroplated gold cover, the record is shielded from cosmic erosion and will remain playable for over 1 billion years."
+        }
+      },
+      {
+        id: "history-local-anesthesia",
+        title: "The Discovery of Local Anesthesia: From Sigmund Freud to Needle-Free Numbness",
+        category: "History of Medicine",
+        categoryColor: "purple",
+        readTime: "3 min 35 sec read",
+        hook: "Until 1884, eye surgeons had to hold patients down while cutting into conscious eyeballs without pain relief—until an Austrian ophthalmologist dropped coca leaves into his tongue.",
+        sec1Title: "1. The Agony of 19th Century Surgery",
+        sec2Title: "2. Carl Koller and the Numb Tongue",
+        sec3Title: "3. The Molecular Leap to Novocaine & Lidocaine",
+        scale: "General anesthesia (ether and chloroform) existed by the mid-1800s, but it caused violent vomiting, respiratory depression, and flailing—making delicate corneal and cataract surgeries virtually impossible. Patients either had to endure ocular scalpels in fully conscious agony or risk total blindness.",
+        mechanism: "In Vienna in 1884, young physician Sigmund Freud was researching the psychoactive stimulant properties of cocaine. His colleague, ophthalmologist Carl Koller, noticed that whenever he tasted purified cocaine alkaloid powder, his tongue went completely insensitive to pinpricks. Koller dissolved cocaine in water and dropped it into a frog's eye, then a rabbit's eye, and finally his own eye, discovering he could gouge the cornea with a needle without sensation.",
+        impact: "Koller demonstrated local anesthesia at the Heidelberg Ophthalmological Congress in September 1884, revolutionizing modern medicine overnight. Chemists quickly recognized cocaine’s severe toxicity and addictive nature, sparking a race to synthesize safer analogues: Alfred Einhorn synthesized procaine (Novocaine) in 1905, followed by Nils Löfgren synthesizing lidocaine in 1943.",
+        takeaway: "All local anesthetics work through the same molecular trick: their lipophilic aromatic rings lodge inside voltage-gated sodium channels in peripheral sensory nerves, blocking sodium ions from rushing into the neuron and completely halting pain action potentials before they reach the spinal cord.",
+        prompts: [
+          "How do sodium channel blockers stop pain?",
+          "Why was Novocaine replaced by Lidocaine?",
+          "What was Sigmund Freud's role in the discovery?"
+        ],
+        knowledgeBase: {
+          "sodium": "Nerve fibers communicate pain by opening voltage-gated sodium channels, creating an electrical spike (action potential). Local anesthetics physically plug the intracellular gate of the sodium pore, preventing the nerve from transmitting the pain signal.",
+          "lidocaine": "Novocaine (procaine) is an ester-type anesthetic that caused frequent allergic reactions due to metabolic breakdown into PABA, and had a slow onset. Lidocaine (an amide-type) acts faster, lasts longer, and has virtually zero allergic reactivity.",
+          "freud": "Freud wrote the famous monograph 'Über Coca' praising cocaine for treating depression and morphine addiction. He shared samples with Koller, but was traveling to visit his fiancée when Koller ran the historic eye experiments that earned worldwide fame."
+        }
+      },
+      {
+        id: "whale-aorta",
+        title: "The Colossal Blue Whale Aorta: Swimming Inside a Living Heart",
+        category: "Biology & Physiology",
+        categoryColor: "blue",
+        readTime: "3 min 40 sec read",
+        hook: "A human infant could crawl through its primary artery without bending down, and you could hear its pulse from two miles away under the ocean waves.",
+        sec1Title: "1. The Scale & Anatomy",
+        sec2Title: "2. The Hemodynamic Physics",
+        sec3Title: "3. Biological Limits of Life",
+        scale: "The blue whale (Balaenoptera musculus) boasts the largest heart on planet Earth—weighing around 400 to 600 pounds (roughly the size of a golf cart). Attached to this cavernous pump is an aorta with an internal lumen diameter exceeding 9 inches (23–25 cm). It funnels upwards of 58 gallons (220 liters) of oxygenated blood with every single ventricular contraction.",
+        mechanism: "When diving hundreds of feet to feed on krill swarms, their heart rate drops drastically from 25–35 beats per minute on the surface to an uncanny 2 beats per minute. The massive elastic recoil of the whale’s aorta—known as the Windkessel effect—acts as a secondary auxiliary pump, squeezing blood through thousands of miles of vascular capillaries between pulses when the heart sits paused for 30 seconds.",
+        impact: "Biophysicists utilize the whale’s aorta to calculate the absolute theoretical upper limit of mammalian body mass. At 2 beats per minute, the elastic vessel operates right at the threshold of physical rupture and metabolic starving. If a blue whale were even 10% larger, physics dictates its heart simply could not generate enough hydrostatic kinetic pressure to return blood to its brain.",
+        takeaway: "The aorta's internal elastic walls are so thick (over an inch of pure muscular elastane) that marine biologists conducting dissections have likened the sensation inside the lumen to walking down a slick, rubberized subterranean storm sewer.",
+        prompts: [
+          "Could an adult human physically fit inside it?",
+          "How loud is the heartbeat under water?",
+          "What is the Windkessel effect in physics?"
+        ],
+        knowledgeBase: {
+          "fit": "While a small child could crawl through the 9-inch aorta lumen, an adult human could not fit through the aorta itself. However, the heart's main ventricular chambers are large enough that a full-sized adult human could sit inside them!",
+          "loud": "A blue whale's heartbeat generates low-frequency infrasound pulses reaching up to 180 decibels. Marine acoustic hydrophones have detected the deep thumping pulse from over 2 miles (3.2 km) away across open ocean channels.",
+          "windkessel": "The Windkessel effect describes how large elastic arteries expand like compliant balloons during systole and gradually recoil during diastole, converting pulsatile pumping into smooth, continuous flow."
+        }
+      },
+      {
+        id: "wood-wide-web",
+        title: "The Wood Wide Web: The Subterranean Fungal Superhighway",
+        category: "Biology & Physiology",
+        categoryColor: "emerald",
+        readTime: "3 min 30 sec read",
+        hook: "Underneath every square meter of pristine forest floor lies an interconnected fungal neurological network spanning hundreds of miles that trades resources and sends danger signals between trees.",
+        sec1Title: "1. The Invisible Mycorrhizal Grid",
+        sec2Title: "2. The Biological Barter Market",
+        sec3Title: "3. Mother Trees and Communal Defense",
+        scale: "Mycorrhizal fungi form microscopic filaments called hyphae, just one cell wide. A single cubic inch of fertile forest soil can contain over eight miles of fungal hyphae connecting the root tips of dozens of distinct plant and tree species.",
+        mechanism: "This isn't merely passive fungus; it functions like an economic barter exchange and communication network. Trees photosynthesize surplus sugars and pump carbon down into the fungal network; in return, the fungi dissolve soil minerals (phosphorus, nitrogen, micronutrients) and deliver them directly to tree roots. If an aphid swarm attacks one tree, it sends calcium and electrical warning pulses through the fungal network, prompting neighbor trees 50 feet away to produce bitter defensive tannins before the pests arrive.",
+        impact: "Forestry scientists now understand that old-growth 'Mother Trees' use this mycelial internet to preferentially nurse younger seedlings that are shaded from sunlight, transferring nutrients and water to sustain the community forest canopy.",
+        takeaway: "If you clear-cut a forest and disrupt the subterranean fungal architecture, replanted saplings often fail to mature because they are cut off from the shared biological resource-sharing grid.",
+        prompts: [
+          "Can trees really 'talk' across fungal threads?",
+          "How do fungi charge 'commissions' on sugars?",
+          "What are 'Mother Trees'?"
+        ],
+        knowledgeBase: {
+          "talk": "Yes! When damaged by herbivores, trees emit volatile organic compounds and propagate electrical and biochemical signals along mycelial strands, triggering pest-resistance genes in nearby flora.",
+          "commission": "Fungi act like shrewd trading hubs. Studies with radio-labeled carbon show fungal nodes will selectively deliver phosphorus to whichever tree offers the highest concentration of sugar in exchange, creating an active biological market.",
+          "mother": "Mother Trees are the largest, oldest hub trees in a forest. Research led by Suzanne Simard showed that removing these central nodes causes fungal networks to collapse, drastically lowering the survival rate of young saplings."
+        }
+      }
+    ];
+
+    // State Variables
+    let currentFactIndex = -1;
+    let selectedCategory = 'all';
+    let savedFactIds = new Set();
+    let isSpeaking = false;
+    let speechUtterance = null;
+
+    // Load bookmarks
+    try {
+      const stored = localStorage.getItem('curio_saved_facts');
+      if (stored) {
+        savedFactIds = new Set(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.log('LocalStorage unavailable');
+    }
+
+    function setCategoryFilter(category, buttonEl) {
+      selectedCategory = category;
+
+      // Update button styling
+      document.querySelectorAll('.cat-pill').forEach(btn => {
+        btn.className = 'cat-pill px-3 py-1.5 rounded-full text-xs font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition';
+      });
+      buttonEl.className = 'cat-pill active px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-600 text-white border border-blue-500 shadow-sm transition';
+
+      const label = document.getElementById('selectedCategoryLabel');
+      label.textContent = category === 'all' ? 'Surprise Me (Any)' : category;
+
+      // Haptic simulation
+      if (navigator.vibrate) navigator.vibrate(12);
+    }
+
+    function generateFactOnDemand() {
+      // Filter list based on selected category
+      let candidates = FACTS_DATABASE;
+      if (selectedCategory !== 'all') {
+        candidates = FACTS_DATABASE.filter(f => f.category === selectedCategory);
+      }
+
+      if (candidates.length === 0) candidates = FACTS_DATABASE;
+
+      // Pick a random index (avoiding repetition if possible)
+      let nextFact;
+      if (candidates.length > 1 && currentFactIndex !== -1) {
+        const available = candidates.filter(f => f.id !== FACTS_DATABASE[currentFactIndex]?.id);
+        nextFact = available[Math.floor(Math.random() * available.length)];
+      } else {
+        nextFact = candidates[Math.floor(Math.random() * candidates.length)];
+      }
+
+      const globalIndex = FACTS_DATABASE.findIndex(f => f.id === nextFact.id);
+      renderFact(globalIndex);
+      showReaderScreen();
+
+      if (navigator.vibrate) navigator.vibrate(25);
+    }
+
+    function nextFact() {
+      generateFactOnDemand();
+    }
+
+    function showReaderScreen() {
+      document.getElementById('homeScreen').classList.add('hidden');
+      document.getElementById('factContainer').classList.remove('hidden');
+      document.getElementById('readerFooter').classList.remove('hidden');
+      document.getElementById('homeNavBtn').classList.remove('hidden');
+      document.getElementById('ttsBtn').classList.remove('hidden');
+      document.getElementById('bookmarkBtn').classList.remove('hidden');
+    }
+
+    function goToHome() {
+      stopSpeech();
+      document.getElementById('factContainer').classList.add('hidden');
+      document.getElementById('readerFooter').classList.add('hidden');
+      document.getElementById('homeNavBtn').classList.add('hidden');
+      document.getElementById('ttsBtn').classList.add('hidden');
+      document.getElementById('bookmarkBtn').classList.add('hidden');
+      document.getElementById('homeScreen').classList.remove('hidden');
+    }
+
+    function renderFact(index) {
+      const fact = FACTS_DATABASE[index];
+      if (!fact) return;
+
+      currentFactIndex = index;
+      stopSpeech();
+
+      // Meta & Header
+      document.getElementById('factSequenceCounter').textContent = `Curio #${index + 1} of ${FACTS_DATABASE.length}`;
+      document.getElementById('factCategory').textContent = fact.category;
+      document.getElementById('factReadTime').textContent = fact.readTime;
+      document.getElementById('factTitle').textContent = fact.title;
+      document.getElementById('factHook').textContent = `"${fact.hook}"`;
+
+      // Subheading Labels
+      document.getElementById('sec1Title').textContent = fact.sec1Title;
+      document.getElementById('sec2Title').textContent = fact.sec2Title;
+      document.getElementById('sec3Title').textContent = fact.sec3Title;
+
+      // Body Paragraphs
+      document.getElementById('factScale').textContent = fact.scale;
+      document.getElementById('factMechanism').textContent = fact.mechanism;
+      document.getElementById('factImpact').textContent = fact.impact;
+      document.getElementById('factTakeaway').textContent = fact.takeaway;
+
+      // Glow accent
+      const glow = document.getElementById('categoryGlow');
+      glow.className = `absolute -right-8 -top-8 w-36 h-36 bg-${fact.categoryColor}-500/20 rounded-full blur-2xl pointer-events-none animate-glow`;
+
+      // Render Prompt Chips
+      const chipsContainer = document.getElementById('promptChips');
+      chipsContainer.innerHTML = '';
+      fact.prompts.forEach(promptText => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white text-[11px] border border-slate-700/60 transition flex items-center gap-1.5 text-left';
+        btn.innerHTML = `<i class="fa-solid fa-arrow-turn-down text-[9px] text-blue-400 rotate-90"></i> ${promptText}`;
+        btn.onclick = () => askPredefinedPrompt(promptText);
+        chipsContainer.appendChild(btn);
+      });
+
+      // Reset chat stream
+      const chatBox = document.getElementById('chatBox');
+      chatBox.innerHTML = `
+        <div class="flex gap-2">
+          <div class="w-5 h-5 rounded-md bg-blue-600 flex-shrink-0 flex items-center justify-center text-[10px] text-white">
+            <i class="fa-solid fa-sparkles"></i>
+          </div>
+          <div class="text-slate-300 leading-relaxed">
+            Curious about the deeper mechanics of <strong>${fact.title.split(':')[0]}</strong>? Select a prompt above or ask a question!
+          </div>
+        </div>
+      `;
+
+      updateBookmarkState();
+      document.getElementById('factContainer').scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateBookmarkState() {
+      if (currentFactIndex === -1) return;
+      const currentFact = FACTS_DATABASE[currentFactIndex];
+      const icon = document.getElementById('bookmarkIcon');
+      const isSaved = savedFactIds.has(currentFact.id);
+
+      if (isSaved) {
+        icon.className = "fa-solid fa-bookmark text-sm text-yellow-400";
+      } else {
+        icon.className = "fa-regular fa-bookmark text-sm text-slate-300";
+      }
+
+      // Update counter badge
+      const counter = document.getElementById('savedCounter');
+      if (savedFactIds.size > 0) {
+        counter.textContent = savedFactIds.size;
+        counter.classList.remove('hidden');
+      } else {
+        counter.classList.add('hidden');
+      }
+
+      try {
+        localStorage.setItem('curio_saved_facts', JSON.stringify([...savedFactIds]));
+      } catch(e) {}
+    }
+
+    function toggleBookmark() {
+      if (currentFactIndex === -1) return;
+      const currentFact = FACTS_DATABASE[currentFactIndex];
+      if (savedFactIds.has(currentFact.id)) {
+        savedFactIds.delete(currentFact.id);
+        showToast("Removed from Saved Curiosities", "fa-bookmark", "text-slate-400");
+      } else {
+        savedFactIds.add(currentFact.id);
+        showToast("Saved to your personal Curio library!", "fa-bookmark", "text-yellow-400");
+      }
+      updateBookmarkState();
+    }
+
+    function openSavedTray() {
+      const tray = document.getElementById('savedTray');
+      const list = document.getElementById('savedList');
+      list.innerHTML = '';
+
+      if (savedFactIds.size === 0) {
+        list.innerHTML = `
+          <div class="text-center py-8 text-slate-500 space-y-2">
+            <i class="fa-regular fa-bookmark text-3xl opacity-40"></i>
+            <p class="text-xs">No saved facts yet.<br>Tap the bookmark icon on any fact to revisit it anytime!</p>
+          </div>
+        `;
+      } else {
+        savedFactIds.forEach(id => {
+          const fact = FACTS_DATABASE.find(f => f.id === id);
+          if (!fact) return;
+
+          const item = document.createElement('div');
+          item.className = 'p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-3 hover:border-slate-700 transition cursor-pointer';
+          item.innerHTML = `
+            <div class="flex-1 min-w-0" onclick="loadSavedFactById('${fact.id}')">
+              <span class="text-[10px] font-semibold text-blue-400 uppercase tracking-wide">${fact.category}</span>
+              <h4 class="text-xs font-bold text-white truncate">${fact.title}</h4>
+              <p class="text-[11px] text-slate-400 truncate">${fact.hook}</p>
+            </div>
+            <button onclick="event.stopPropagation(); removeSavedFact('${fact.id}')" class="p-2 text-slate-500 hover:text-red-400 text-xs">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          `;
+          list.appendChild(item);
+        });
+      }
+
+      tray.classList.remove('hidden');
+    }
+
+    function closeSavedTray() {
+      document.getElementById('savedTray').classList.add('hidden');
+    }
+
+    function loadSavedFactById(id) {
+      const idx = FACTS_DATABASE.findIndex(f => f.id === id);
+      if (idx !== -1) {
+        renderFact(idx);
+        showReaderScreen();
+        closeSavedTray();
+      }
+    }
+
+    function removeSavedFact(id) {
+      savedFactIds.delete(id);
+      updateBookmarkState();
+      openSavedTray();
+    }
+
+    // Text to Speech
+    function toggleSpeech() {
+      if (!('speechSynthesis' in window)) {
+        showToast("Speech synthesis not supported on this browser", "fa-circle-exclamation", "text-red-400");
+        return;
+      }
+      if (isSpeaking) {
+        stopSpeech();
+      } else {
+        startSpeech();
+      }
+    }
+
+    function startSpeech() {
+      if (currentFactIndex === -1) return;
+      window.speechSynthesis.cancel();
+      const fact = FACTS_DATABASE[currentFactIndex];
+      const fullText = `${fact.title}. ${fact.hook}. First: ${fact.scale}. Second: ${fact.mechanism}. Third: ${fact.impact}. Finally: ${fact.takeaway}`;
+
+      speechUtterance = new SpeechSynthesisUtterance(fullText);
+      speechUtterance.rate = 0.98;
+      speechUtterance.pitch = 1.0;
+
+      speechUtterance.onstart = () => {
+        isSpeaking = true;
+        document.getElementById('ttsIcon').className = "fa-solid fa-pause text-sm text-blue-400 animate-pulse";
+        showToast("Reading aloud...", "fa-volume-high", "text-blue-400");
+      };
+
+      speechUtterance.onend = stopSpeech;
+      speechUtterance.onerror = stopSpeech;
+
+      window.speechSynthesis.speak(speechUtterance);
+    }
+
+    function stopSpeech() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      isSpeaking = false;
+      const ttsIcon = document.getElementById('ttsIcon');
+      if (ttsIcon) ttsIcon.className = "fa-solid fa-volume-high text-sm";
+    }
+
+    function askPredefinedPrompt(promptText) {
+      document.getElementById('chatInput').value = promptText;
+      handleChatSubmit(new Event('submit'));
+    }
+
+    function handleChatSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('chatInput');
+      const question = input.value.trim();
+      if (!question || currentFactIndex === -1) return;
+
+      const chatBox = document.getElementById('chatBox');
+
+      const userBubble = document.createElement('div');
+      userBubble.className = 'flex justify-end';
+      userBubble.innerHTML = `
+        <div class="bg-blue-600/90 text-white rounded-xl rounded-tr-none px-3 py-1.5 max-w-[85%] text-slate-100">
+          ${escapeHtml(question)}
+        </div>
+      `;
+      chatBox.appendChild(userBubble);
+      input.value = '';
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      // Typing loader
+      const typingId = 'typing-' + Date.now();
+      const typingDiv = document.createElement('div');
+      typingDiv.id = typingId;
+      typingDiv.className = 'flex gap-2 items-center text-slate-500 italic text-[11px]';
+      typingDiv.innerHTML = `
+        <div class="w-4 h-4 rounded bg-slate-800 flex items-center justify-center text-[9px] text-blue-400"><i class="fa-solid fa-spinner animate-spin"></i></div>
+        <span>Consulting Curio archives...</span>
+      `;
+      chatBox.appendChild(typingDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      setTimeout(() => {
+        const el = document.getElementById(typingId);
+        if (el) el.remove();
+
+        const answer = getFactAnswer(question);
+        const botBubble = document.createElement('div');
+        botBubble.className = 'flex gap-2';
+        botBubble.innerHTML = `
+          <div class="w-5 h-5 rounded-md bg-blue-600 flex-shrink-0 flex items-center justify-center text-[10px] text-white">
+            <i class="fa-solid fa-sparkles"></i>
+          </div>
+          <div class="text-slate-300 leading-relaxed bg-slate-900 border border-slate-800 rounded-xl rounded-tl-none p-2.5">
+            ${answer}
+          </div>
+        `;
+        chatBox.appendChild(botBubble);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }, 500);
+    }
+
+    function getFactAnswer(q) {
+      const fact = FACTS_DATABASE[currentFactIndex];
+      const lower = q.toLowerCase();
+
+      if (fact.knowledgeBase) {
+        for (const [key, answer] of Object.entries(fact.knowledgeBase)) {
+          if (lower.includes(key)) {
+            return answer;
+          }
+        }
+      }
+
+      if (lower.includes("how") || lower.includes("mechanism")) {
+        return `Regarding ${fact.title.split(':')[0]}: ${fact.mechanism}`;
+      }
+      if (lower.includes("why") || lower.includes("significance")) {
+        return `The significance lies in: ${fact.impact}`;
+      }
+
+      return `Fascinating inquiry! In the context of ${fact.category}: ${fact.takeaway} This makes ${fact.title.split(':')[0]} one of the most distinctive subjects in its field.`;
+    }
+
+    function shareFact() {
+      if (currentFactIndex === -1) return;
+      const fact = FACTS_DATABASE[currentFactIndex];
+      const shareData = {
+        title: `Curio: ${fact.title}`,
+        text: `Did you know? ${fact.hook}`,
+        url: window.location.href
+      };
+
+      if (navigator.share) {
+        navigator.share(shareData).catch(() => {});
+      } else {
+        const dummy = document.createElement("textarea");
+        document.body.appendChild(dummy);
+        dummy.value = `${fact.title}\n\n"${fact.hook}"\n\nDeep dive via Curio 3-Min Facts!`;
+        dummy.select();
+        document.execCommand("copy");
+        document.body.removeChild(dummy);
+        showToast("Fact copied to clipboard!", "fa-copy", "text-blue-400");
+      }
+    }
+
+    function showToast(msg, icon = "fa-check", iconColor = "text-emerald-400") {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.textContent = msg;
+      toastIcon.className = `fa-solid ${icon} ${iconColor}`;
+
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      toast.classList.add('opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2300);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+      );
+    }
+
+    // Start cleanly on the Home Screen on initial launch
+    window.onload = function() {
+      updateBookmarkState();
+    };
+  </script>
+</body>
+</html>
+```
